@@ -3,12 +3,12 @@ Contributors: rbenjwal
 Tags: messages, live updates, announcements
 Requires at least: 5.0
 Tested up to: 6.4
-Stable tag: 0.9.0-beta
+Stable tag: 0.9.1-beta
 Requires PHP: 7.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Display live updating messages and announcements with automatic refresh.
+Display live updating messages and announcements with automatic refresh functionality.
 
 == Description ==
 Live Messages allows you to display real-time updates and announcements on your WordPress site. Messages are automatically refreshed and can be shared on social media.
@@ -26,6 +26,11 @@ Live Messages allows you to display real-time updates and announcements on your 
 * Message types with icons
 * Pagination support
 
+= 0.9.1-beta =
+* Added automatic refresh functionality
+
 == Upgrade Notice ==
 = 0.9.0-beta =
 Initial beta release with core functionality
+= 0.9.1-beta =
+Added automatic refresh functionality

@@ -24,10 +24,8 @@ $updateChecker = PucFactory::buildUpdateChecker(
 );
 
 // Set the branch that contains the stable release
-$updateChecker->setBranch('main');
-
-// Optional: If you want to enable update checking for pre-release versions
 $updateChecker->getVcsApi()->enableReleaseAssets();
+$updateChecker->setAuthentication('your-github-token'); // Optional: for private repos
 
 if (!defined('ABSPATH')) exit;
 
