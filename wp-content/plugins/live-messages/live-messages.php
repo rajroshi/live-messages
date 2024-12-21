@@ -2,7 +2,7 @@
 /*
 Plugin Name: Live Messages
 Description: Display live updating short messages like tweets
-Version: 0.9.0-beta
+Version: 0.9.1-beta
 Author: Rajesh Benjwal
 Author URI: https://tantrakul.org
 GitHub Plugin URI: rajroshi/live-messages
@@ -32,7 +32,7 @@ $updateChecker->getVcsApi()->enableReleaseAssets();
 if (!defined('ABSPATH')) exit;
 
 // Define plugin constants
-define('LIVE_MESSAGES_VERSION', '0.9.0-beta');
+define('LIVE_MESSAGES_VERSION', '0.9.1-beta');
 define('LIVE_MESSAGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('LIVE_MESSAGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -260,4 +260,121 @@ function live_messages_shortcode() {
     return ob_get_clean();
 }
 add_shortcode('live_messages', 'live_messages_shortcode');
+
+// Add new shortcode for latest/important message
+function live_messages_latest_shortcode($atts) {
+    // Parse attributes
+    $atts = shortcode_atts(array(
+        'type' => '',         // empty for any type, or 'important', 'warning', etc.
+        'count' => 1,         // number of messages to show
+        'words' => 30,        // word limit for content
+        'show_date' => 'yes', // yes/no
+        'show_type' => 'yes'  // yes/no
+    ), $atts);
+
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'live_messages';
+    
+    // Build query based on type
+    $where_clause = '';
+    if (!empty($atts['type'])) {
+        $where_clause = $wpdb->prepare(" WHERE type = %s", $atts['type']);
+    }
+
+    // Get latest message(s)
+    $messages = $wpdb->get_results($wpdb->prepare(
+        "SELECT m.*, IFNULL(u.display_name, u.user_nicename) as author_name 
+         FROM {$table_name} m 
+         LEFT JOIN {$wpdb->users} u ON m.author_id = u.ID 
+         {$where_clause}
+         ORDER BY created_at DESC 
+         LIMIT %d",
+        intval($atts['count'])
+    ));
+
+    if (empty($messages)) {
+        return '<div class="live-messages-latest empty">No messages found</div>';
+    }
+
+    ob_start();
+    ?>
+    <div class="live-messages-latest">
+        <?php foreach ($messages as $message): ?>
+            <div class="latest-message type-<?php echo esc_attr($message->type); ?>">
+                <h4 class="message-title"><?php echo esc_html($message->title); ?></h4>
+                
+                <div class="message-content">
+                    <?php 
+                    $content = wp_trim_words($message->content, $atts['words'], '...');
+                    echo wp_kses_post($content);
+                    ?>
+                </div>
+                
+                <?php if ($atts['show_type'] === 'yes'): ?>
+                    <span class="message-type"><?php echo esc_html(ucfirst($message->type)); ?></span>
+                <?php endif; ?>
+                
+                <?php if ($atts['show_date'] === 'yes'): ?>
+                    <span class="message-date">
+                        <?php echo esc_html(human_time_diff(strtotime($message->created_at), current_time('timestamp'))); ?> ago
+                    </span>
+                <?php endif; ?>
+            </div>
+        <?php endforeach; ?>
+    </div>
+    <?php
+    return ob_get_clean();
+}
+add_shortcode('live_messages_latest', 'live_messages_latest_shortcode');
+
+// Add specific styles for the latest message display
+function live_messages_latest_styles() {
+    ?>
+    <style>
+        .live-messages-latest {
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .live-messages-latest .latest-message {
+            padding: 10px 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ccc;
+            background: #f9f9f9;
+            margin-bottom: 10px;
+        }
+        .live-messages-latest .message-title {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .live-messages-latest .message-content {
+            margin-bottom: 8px;
+        }
+        .live-messages-latest .message-type,
+        .live-messages-latest .message-date {
+            font-size: 12px;
+            color: #666;
+            margin-right: 10px;
+        }
+        /* Message type styles */
+        .live-messages-latest .type-important {
+            border-left-color: #dc3545;
+            background: #fff8f8;
+        }
+        .live-messages-latest .type-warning {
+            border-left-color: #ffc107;
+            background: #fffbf0;
+        }
+        .live-messages-latest .type-success {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+        .live-messages-latest .type-info {
+            border-left-color: #17a2b8;
+            background: #f0f9fc;
+        }
+    </style>
+    <?php
+}
+add_action('wp_head', 'live_messages_latest_styles');
   
