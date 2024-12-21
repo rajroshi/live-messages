@@ -6,6 +6,7 @@ Version: 0.9.0-beta
 Author: Rajesh Benjwal
 Author URI: https://tantrakul.org
 GitHub Plugin URI: rajroshi/live-messages
+Plugin URI: https://github.com/rajroshi/live-messages
 License: GPL v3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 */
@@ -24,6 +25,9 @@ $updateChecker = PucFactory::buildUpdateChecker(
 
 // Set the branch that contains the stable release
 $updateChecker->setBranch('main');
+
+// Optional: If you want to enable update checking for pre-release versions
+$updateChecker->getVcsApi()->enableReleaseAssets();
 
 if (!defined('ABSPATH')) exit;
 
