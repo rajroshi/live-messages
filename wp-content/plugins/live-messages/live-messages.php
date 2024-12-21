@@ -2,7 +2,7 @@
 /*
 Plugin Name: Live Messages
 Description: Display live updating short messages like tweets
-Version: 0.9.1-beta
+Version: 0.9.2-beta
 Author: Rajesh Benjwal
 Author URI: https://tantrakul.org
 GitHub Plugin URI: rajroshi/live-messages
@@ -30,7 +30,7 @@ $updateChecker->setAuthentication('your-github-token'); // Optional: for private
 if (!defined('ABSPATH')) exit;
 
 // Define plugin constants
-define('LIVE_MESSAGES_VERSION', '0.9.1-beta');
+define('LIVE_MESSAGES_VERSION', '0.9.2-beta');
 define('LIVE_MESSAGES_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('LIVE_MESSAGES_PLUGIN_URL', plugin_dir_url(__FILE__));
 
