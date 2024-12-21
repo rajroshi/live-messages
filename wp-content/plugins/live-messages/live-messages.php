@@ -139,15 +139,15 @@ function handle_submit_message() {
             array('%s', '%s', '%d', '%s', '%s')
         );
 
-        if ($result === false) {
-            wp_send_json_error('Database error: ' . $wpdb->last_error);
-            return;
+        if ($result !== false) {
+            // Send to Slack
+            notify_slack($message, $type, $title);
+            
+            wp_send_json_success(array(
+                'message' => 'Message saved successfully',
+                'id' => $wpdb->insert_id
+            ));
         }
-
-        wp_send_json_success(array(
-            'message' => 'Message saved successfully',
-            'id' => $wpdb->insert_id
-        ));
 
     } catch (Exception $e) {
         wp_send_json_error('Error: ' . $e->getMessage());
@@ -208,8 +208,8 @@ function live_messages_shortcode() {
     ?>
     <div id="live-messages-container">
         <div class="live-messages-header">
-            <h2 class="live-messages-title">तंत्रकुल समाचार</h2>
-            <p class="live-messages-subtitle">Latest Updates & Announcements</p>
+            <h2 class="live-messages-title"><?php echo esc_html(get_option('live_messages_main_title', 'तंत्रकुल समाचार')); ?></h2>
+            <p class="live-messages-subtitle"><?php echo esc_html(get_option('live_messages_subtitle', 'Latest Updates & Announcements')); ?></p>
         </div>
         
         <?php if (current_user_can('manage_options')): ?>
@@ -375,4 +375,101 @@ function live_messages_latest_styles() {
     <?php
 }
 add_action('wp_head', 'live_messages_latest_styles');
+
+// Add Slack settings to WordPress admin
+function live_messages_add_settings() {
+    add_options_page(
+        'Live Messages Settings',
+        'Live Messages',
+        'manage_options',
+        'live-messages-settings',
+        'live_messages_settings_page'
+    );
+
+    register_setting('live-messages', 'live_messages_slack_webhook');
+    register_setting('live-messages', 'live_messages_main_title');
+    register_setting('live-messages', 'live_messages_subtitle');
+}
+add_action('admin_menu', 'live_messages_add_settings');
+
+function live_messages_settings_page() {
+    ?>
+    <div class="wrap">
+        <h2>Live Messages Settings</h2>
+        <form method="post" action="options.php">
+            <?php settings_fields('live-messages'); ?>
+            <table class="form-table">
+                <tr>
+                    <th>Main Title</th>
+                    <td>
+                        <input type="text" 
+                               name="live_messages_main_title" 
+                               value="<?php echo esc_attr(get_option('live_messages_main_title', 'तंत्रकुल समाचार')); ?>" 
+                               class="regular-text">
+                    </td>
+                </tr>
+                <tr>
+                    <th>Subtitle</th>
+                    <td>
+                        <input type="text" 
+                               name="live_messages_subtitle" 
+                               value="<?php echo esc_attr(get_option('live_messages_subtitle', 'Latest Updates & Announcements')); ?>" 
+                               class="regular-text">
+                    </td>
+                </tr>
+                <tr>
+                    <th>Slack Webhook URL</th>
+                    <td>
+                        <input type="text" 
+                               name="live_messages_slack_webhook" 
+                               value="<?php echo esc_attr(get_option('live_messages_slack_webhook')); ?>" 
+                               class="regular-text">
+                    </td>
+                </tr>
+            </table>
+            <?php submit_button(); ?>
+        </form>
+    </div>
+    <?php
+}
+
+function notify_slack($message, $type, $title) {
+    $webhook_url = get_option('live_messages_slack_webhook');
+    if (empty($webhook_url)) return;
+
+    $color = '#17a2b8'; // default info color
+    switch ($type) {
+        case 'important':
+            $color = '#dc3545';
+            break;
+        case 'warning':
+            $color = '#ffc107';
+            break;
+        case 'success':
+            $color = '#28a745';
+            break;
+    }
+
+    $data = array(
+        'attachments' => array(
+            array(
+                'color' => $color,
+                'title' => $title,
+                'text' => $message,
+                'fields' => array(
+                    array(
+                        'title' => 'Type',
+                        'value' => ucfirst($type),
+                        'short' => true
+                    )
+                )
+            )
+        )
+    );
+
+    wp_remote_post($webhook_url, array(
+        'body' => json_encode($data),
+        'headers' => array('Content-Type' => 'application/json'),
+    ));
+}
   
