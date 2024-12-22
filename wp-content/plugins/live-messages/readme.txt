@@ -3,7 +3,7 @@ Contributors: rbenjwal
 Tags: messages, live updates, announcements
 Requires at least: 5.0
 Tested up to: 6.4
-Stable tag: 0.9.2-beta
+Stable tag: 1.0.0
 Requires PHP: 7.2
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
@@ -54,6 +54,15 @@ Displays latest message without date and type indicators
 4. Configure settings under Settings → Live Messages
 
 == Changelog ==
+= 1.0.0 =
+* First stable release
+* Improved admin interface
+* Consolidated settings menu
+* Added message management dashboard
+* Added Slack integration
+* Added customizable titles
+* Added comprehensive shortcode support
+
 = 0.9.2-beta =
 * Added customizable titles in settings
 * Added Slack integration
@@ -68,6 +77,8 @@ Displays latest message without date and type indicators
 * Pagination support
 
 == Upgrade Notice ==
+= 1.0.0 =
+First stable release with improved admin interface and complete feature set
 = 0.9.0-beta =
 Initial beta release with core functionality
 = 0.9.1-beta =
