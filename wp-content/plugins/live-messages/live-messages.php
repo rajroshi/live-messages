@@ -81,30 +81,6 @@ function live_messages_activate() {
 }
 register_activation_hook(__FILE__, 'live_messages_activate');
 
-// Register post type
-function live_messages_post_type() {
-    register_post_type('live_message', array(
-        'labels' => array(
-            'name' => 'Live Messages',
-            'singular_name' => 'Live Message',
-            'add_new' => 'Add New',
-            'add_new_item' => 'Add New Message',
-            'edit_item' => 'Edit Message',
-            'new_item' => 'New Message',
-            'view_item' => 'View Message',
-            'search_items' => 'Search Messages',
-            'not_found' => 'No messages found',
-            'not_found_in_trash' => 'No messages found in Trash'
-        ),
-        'public' => true,
-        'has_archive' => true,
-        'supports' => array('title', 'editor'),
-        'menu_icon' => 'dashicons-format-chat',
-        'show_in_rest' => true // Enable Gutenberg editor
-    ));
-}
-add_action('init', 'live_messages_post_type');
-
 // Handle message submission
 function handle_submit_message() {
     try {
@@ -471,5 +447,156 @@ function notify_slack($message, $type, $title) {
         'body' => json_encode($data),
         'headers' => array('Content-Type' => 'application/json'),
     ));
+}
+
+// Add admin menu for messages
+function live_messages_admin_menu() {
+    add_menu_page(
+        'Live Messages',
+        'Live Messages',
+        'manage_options',
+        'live-messages',
+        'live_messages_admin_page',
+        'dashicons-format-chat',
+        30
+    );
+
+    // Add submenu items
+    add_submenu_page(
+        'live-messages',
+        'All Messages',
+        'All Messages',
+        'manage_options',
+        'live-messages',
+        'live_messages_admin_page'
+    );
+
+    add_submenu_page(
+        'live-messages',
+        'Settings',
+        'Settings',
+        'manage_options',
+        'live-messages-settings',
+        'live_messages_settings_page'
+    );
+
+    // Register settings here
+    register_setting('live-messages', 'live_messages_slack_webhook');
+    register_setting('live-messages', 'live_messages_main_title');
+    register_setting('live-messages', 'live_messages_subtitle');
+}
+add_action('admin_menu', 'live_messages_admin_menu');
+
+// Admin page display
+function live_messages_admin_page() {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'live_messages';
+
+    // Handle deletion
+    if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
+        $id = intval($_GET['id']);
+        $wpdb->delete($table_name, array('id' => $id), array('%d'));
+        echo '<div class="notice notice-success"><p>Message deleted successfully!</p></div>';
+    }
+
+    // Get messages with pagination
+    $page = isset($_GET['paged']) ? max(1, intval($_GET['paged'])) : 1;
+    $items_per_page = 20;
+    $offset = ($page - 1) * $items_per_page;
+
+    $messages = $wpdb->get_results($wpdb->prepare(
+        "SELECT m.*, IFNULL(u.display_name, u.user_nicename) as author_name 
+         FROM $table_name m 
+         LEFT JOIN {$wpdb->users} u ON m.author_id = u.ID 
+         ORDER BY created_at DESC 
+         LIMIT %d OFFSET %d",
+        $items_per_page,
+        $offset
+    ));
+
+    $total_items = $wpdb->get_var("SELECT COUNT(*) FROM $table_name");
+    $total_pages = ceil($total_items / $items_per_page);
+    ?>
+    <div class="wrap">
+        <h1>Live Messages</h1>
+        
+        <table class="wp-list-table widefat fixed striped">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Title</th>
+                    <th>Message</th>
+                    <th>Type</th>
+                    <th>Author</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($messages as $message): ?>
+                    <tr>
+                        <td><?php echo esc_html($message->id); ?></td>
+                        <td><?php echo esc_html($message->title); ?></td>
+                        <td><?php echo esc_html($message->content); ?></td>
+                        <td>
+                            <span class="message-type <?php echo esc_attr($message->type); ?>">
+                                <?php echo esc_html(ucfirst($message->type)); ?>
+                            </span>
+                        </td>
+                        <td><?php echo esc_html($message->author_name); ?></td>
+                        <td><?php echo esc_html(date('Y-m-d H:i:s', strtotime($message->created_at))); ?></td>
+                        <td>
+                            <a href="<?php echo wp_nonce_url(add_query_arg(array('action' => 'delete', 'id' => $message->id)), 'delete_message_' . $message->id); ?>" 
+                               onclick="return confirm('Are you sure you want to delete this message?')" 
+                               class="button button-small button-link-delete">
+                                Delete
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+
+        <?php
+        // Pagination
+        echo '<div class="tablenav bottom">';
+        echo '<div class="tablenav-pages">';
+        echo paginate_links(array(
+            'base' => add_query_arg('paged', '%#%'),
+            'format' => '',
+            'prev_text' => __('&laquo;'),
+            'next_text' => __('&raquo;'),
+            'total' => $total_pages,
+            'current' => $page
+        ));
+        echo '</div>';
+        echo '</div>';
+        ?>
+    </div>
+
+    <style>
+        .message-type {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .message-type.important {
+            background: #dc3545;
+            color: white;
+        }
+        .message-type.warning {
+            background: #ffc107;
+            color: black;
+        }
+        .message-type.success {
+            background: #28a745;
+            color: white;
+        }
+        .message-type.info {
+            background: #17a2b8;
+            color: white;
+        }
+    </style>
+    <?php
 }
   
