@@ -222,14 +222,121 @@ function live_messages_shortcode() {
         </div>
     </div>
 
-    <?php if (current_user_can('manage_options')): ?>
-        <script>
-        // Debug information
-        console.log('Live Messages initialized');
-        console.log('AJAX URL:', '<?php echo admin_url('admin-ajax.php'); ?>');
-        console.log('Current user can post:', '<?php echo current_user_can('manage_options') ? 'yes' : 'no'; ?>');
-        </script>
-    <?php endif; ?>
+    <style>
+        /* Container styles */
+        #live-messages-container {
+            max-width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-x: hidden; /* Prevent horizontal scroll */
+        }
+
+        /* Message form styles */
+        .message-form {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .message-form-content {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+        }
+
+        /* Input fields */
+        .message-form-content input,
+        .message-form-content select,
+        .message-form-content textarea {
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Message list styles */
+        #messages-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .message-item {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            box-sizing: border-box;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+
+        /* Message content */
+        .message-content {
+            font-size: 16px;
+            line-height: 1.5;
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
+            hyphens: auto;
+        }
+
+        /* Mobile-specific adjustments */
+        @media screen and (max-width: 480px) {
+            #live-messages-container {
+                padding: 5px;
+            }
+
+            .message-form {
+                padding: 10px;
+            }
+
+            .message-item {
+                padding: 12px;
+            }
+
+            .message-title {
+                font-size: 16px;
+            }
+
+            .message-content {
+                font-size: 14px;
+            }
+
+            .message-meta {
+                font-size: 12px;
+            }
+        }
+
+        /* Tablet and larger screens */
+        @media (min-width: 768px) {
+            .message-form-content {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 20px;
+            }
+
+            .message-content-field {
+                grid-column: 1 / -1;
+            }
+
+            .message-form-footer {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
     <?php
     return ob_get_clean();
 }
@@ -492,11 +599,16 @@ function live_messages_admin_page() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'live_messages';
 
-    // Handle deletion
-    if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-        $id = intval($_GET['id']);
-        $wpdb->delete($table_name, array('id' => $id), array('%d'));
-        echo '<div class="notice notice-success"><p>Message deleted successfully!</p></div>';
+    // Handle bulk actions
+    if (isset($_POST['bulk_action']) && isset($_POST['message_ids'])) {
+        $action = sanitize_text_field($_POST['bulk_action']);
+        $message_ids = array_map('intval', $_POST['message_ids']);
+        
+        if ($action === 'delete' && !empty($message_ids)) {
+            $ids_string = implode(',', $message_ids);
+            $wpdb->query("DELETE FROM $table_name WHERE id IN ($ids_string)");
+            echo '<div class="notice notice-success"><p>Selected messages deleted successfully!</p></div>';
+        }
     }
 
     // Get messages with pagination
@@ -520,58 +632,66 @@ function live_messages_admin_page() {
     <div class="wrap">
         <h1>Live Messages</h1>
         
-        <table class="wp-list-table widefat fixed striped">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Title</th>
-                    <th>Message</th>
-                    <th>Type</th>
-                    <th>Author</th>
-                    <th>Date</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($messages as $message): ?>
-                    <tr>
-                        <td><?php echo esc_html($message->id); ?></td>
-                        <td><?php echo esc_html($message->title); ?></td>
-                        <td><?php echo esc_html($message->content); ?></td>
-                        <td>
-                            <span class="message-type <?php echo esc_attr($message->type); ?>">
-                                <?php echo esc_html(ucfirst($message->type)); ?>
-                            </span>
-                        </td>
-                        <td><?php echo esc_html($message->author_name); ?></td>
-                        <td><?php echo esc_html(date('Y-m-d H:i:s', strtotime($message->created_at))); ?></td>
-                        <td>
-                            <a href="<?php echo wp_nonce_url(add_query_arg(array('action' => 'delete', 'id' => $message->id)), 'delete_message_' . $message->id); ?>" 
-                               onclick="return confirm('Are you sure you want to delete this message?')" 
-                               class="button button-small button-link-delete">
-                                Delete
-                            </a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+        <form method="post">
+            <div class="tablenav top">
+                <div class="alignleft actions bulkactions">
+                    <select name="bulk_action">
+                        <option value="">Bulk Actions</option>
+                        <option value="delete">Delete</option>
+                    </select>
+                    <input type="submit" class="button action" value="Apply">
+                </div>
+            </div>
 
-        <?php
-        // Pagination
-        echo '<div class="tablenav bottom">';
-        echo '<div class="tablenav-pages">';
-        echo paginate_links(array(
-            'base' => add_query_arg('paged', '%#%'),
-            'format' => '',
-            'prev_text' => __('&laquo;'),
-            'next_text' => __('&raquo;'),
-            'total' => $total_pages,
-            'current' => $page
-        ));
-        echo '</div>';
-        echo '</div>';
-        ?>
+            <div class="table-responsive">
+                <table class="wp-list-table widefat fixed striped">
+                    <thead>
+                        <tr>
+                            <th class="check-column"><input type="checkbox" id="cb-select-all"></th>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Message</th>
+                            <th>Type</th>
+                            <th>Author</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($messages as $message): ?>
+                            <tr>
+                                <td><input type="checkbox" name="message_ids[]" value="<?php echo esc_attr($message->id); ?>"></td>
+                                <td><?php echo esc_html($message->id); ?></td>
+                                <td><?php echo esc_html($message->title); ?></td>
+                                <td><?php echo esc_html($message->content); ?></td>
+                                <td>
+                                    <span class="message-type <?php echo esc_attr($message->type); ?>">
+                                        <?php echo esc_html(ucfirst($message->type)); ?>
+                                    </span>
+                                </td>
+                                <td><?php echo esc_html($message->author_name); ?></td>
+                                <td><?php echo esc_html(date('Y-m-d H:i:s', strtotime($message->created_at))); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <?php
+            // Pagination
+            echo '<div class="tablenav bottom">';
+            echo '<div class="tablenav-pages">';
+            echo paginate_links(array(
+                'base' => add_query_arg('paged', '%#%'),
+                'format' => '',
+                'prev_text' => __('&laquo;'),
+                'next_text' => __('&raquo;'),
+                'total' => $total_pages,
+                'current' => $page
+            ));
+            echo '</div>';
+            echo '</div>';
+            ?>
+        </form>
     </div>
 
     <style>
@@ -579,24 +699,71 @@ function live_messages_admin_page() {
             padding: 3px 8px;
             border-radius: 3px;
             font-size: 12px;
+            display: inline-block;
         }
-        .message-type.important {
-            background: #dc3545;
-            color: white;
+        .message-type.important { background: #dc3545; color: white; }
+        .message-type.warning { background: #ffc107; color: black; }
+        .message-type.success { background: #28a745; color: white; }
+        .message-type.info { background: #17a2b8; color: white; }
+
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin-bottom: 1rem;
         }
-        .message-type.warning {
-            background: #ffc107;
-            color: black;
+
+        .wp-list-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
         }
-        .message-type.success {
-            background: #28a745;
-            color: white;
+
+        .wp-list-table th,
+        .wp-list-table td {
+            padding: 8px;
+            vertical-align: top;
+            border-bottom: 1px solid #e5e5e5;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
-        .message-type.info {
-            background: #17a2b8;
-            color: white;
+
+        /* Column widths */
+        .wp-list-table .check-column {
+            width: 3%;
+        }
+        .wp-list-table th:nth-child(2),
+        .wp-list-table td:nth-child(2) {
+            width: 5%; /* ID */
+        }
+        .wp-list-table th:nth-child(3),
+        .wp-list-table td:nth-child(3) {
+            width: 20%; /* Title */
+        }
+        .wp-list-table th:nth-child(4),
+        .wp-list-table td:nth-child(4) {
+            width: 32%; /* Message */
+        }
+        .wp-list-table th:nth-child(5),
+        .wp-list-table td:nth-child(5) {
+            width: 10%; /* Type */
+        }
+        .wp-list-table th:nth-child(6),
+        .wp-list-table td:nth-child(6) {
+            width: 10%; /* Author */
+        }
+        .wp-list-table th:nth-child(7),
+        .wp-list-table td:nth-child(7) {
+            width: 20%; /* Date */
         }
     </style>
+
+    <script>
+        jQuery(document).ready(function($) {
+            // Handle select all checkbox
+            $('#cb-select-all').on('change', function() {
+                $('input[name="message_ids[]"]').prop('checked', $(this).prop('checked'));
+            });
+        });
+    </script>
     <?php
 }
-  
