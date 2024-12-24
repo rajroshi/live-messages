@@ -479,7 +479,7 @@ function live_messages_add_settings() {
 add_action('admin_menu', 'live_messages_add_settings');
 
 function live_messages_settings_page() {
-    // Handle API key generation
+    // Handle API key generation first
     if (isset($_POST['generate_api_key'])) {
         $api_key = wp_generate_password(32, false);
         update_option('live_messages_api_key', $api_key);
@@ -489,6 +489,7 @@ function live_messages_settings_page() {
     <div class="wrap">
         <h2>Live Messages Settings</h2>
         
+        <!-- Main Settings Form -->
         <form method="post" action="options.php">
             <?php settings_fields('live-messages'); ?>
             <table class="form-table">
@@ -524,27 +525,31 @@ function live_messages_settings_page() {
                     <td>
                         <div class="api-key-container">
                             <p class="description">This API key is required for making POST requests to the REST API.</p>
-                            <?php 
-                            $current_api_key = get_option('live_messages_api_key');
-                            ?>
                             <input type="text" 
                                    name="live_messages_api_key"
                                    class="regular-text" 
-                                   value="<?php echo esc_attr($current_api_key); ?>" 
+                                   value="<?php echo esc_attr(get_option('live_messages_api_key')); ?>" 
                                    readonly>
-                            <div class="api-key-actions">
-                                <form method="post" class="generate-key-form">
-                                    <input type="submit" 
-                                           name="generate_api_key" 
-                                           class="button button-secondary" 
-                                           value="Generate New API Key">
-                                </form>
-                            </div>
                         </div>
                     </td>
                 </tr>
             </table>
             <?php submit_button('Save Settings'); ?>
+        </form>
+
+        <!-- Separate Form for API Key Generation -->
+        <form method="post" action="" style="margin-top: -50px;">
+            <table class="form-table">
+                <tr>
+                    <th></th>
+                    <td>
+                        <input type="submit" 
+                               name="generate_api_key" 
+                               class="button button-secondary" 
+                               value="Generate New API Key">
+                    </td>
+                </tr>
+            </table>
         </form>
     </div>
 
@@ -557,15 +562,6 @@ function live_messages_settings_page() {
         .api-key-container .description {
             margin: 0 0 5px 0;
             color: #646970;
-        }
-        .api-key-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .generate-key-form {
-            margin: 0;
-            padding: 0;
         }
         .form-table input[readonly] {
             background: #f0f0f1;
