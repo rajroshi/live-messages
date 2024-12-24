@@ -1,15 +1,15 @@
 <?php
-/*
-Plugin Name: Live Messages
-Description: Display live updating short messages like tweets
-Version: 1.0.1
-Author: Rajesh Benjwal
-Author URI: https://tantrakul.org
-GitHub Plugin URI: rajroshi/live-messages
-Plugin URI: https://github.com/rajroshi/live-messages
-License: GPL v3
-License URI: https://www.gnu.org/licenses/gpl-3.0.html
-*/
+/**
+ * Plugin Name: Live Messages
+ * Plugin URI: https://github.com/rbenjwal/live-messages
+ * Description: A plugin to display live messages and announcements with REST API support
+ * Version: 1.1.0
+ * Author: Rajesh Benjwal
+ * Author URI: https://github.com/rbenjwal
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: live-messages
+ */
 
 // Include the update checker
 require_once plugin_dir_path(__FILE__) . 'includes/plugin-update-checker/plugin-update-checker.php';
