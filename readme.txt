@@ -1,60 +1,114 @@
 === Live Messages ===
 Contributors: rbenjwal
-Tags: messages, live updates, announcements
-Requires at least: 5.0
+Tags: messages, notifications, slack, api, live-updates
+Requires at least: 5.8
 Tested up to: 6.4
-Stable tag: 1.0.0
-Requires PHP: 7.2
+Requires PHP: 7.4
+Stable tag: 1.2.0
 License: GPLv3
 License URI: https://www.gnu.org/licenses/gpl-3.0.html
 
-Display live updating messages and announcements with automatic refresh functionality.
+A professional live messaging system with Slack integration and REST API support, designed specifically for Tantrakul.
 
 == Description ==
-Live Messages allows you to display real-time updates and announcements on your WordPress site. Messages are automatically refreshed and can be shared on social media.
 
-= Available Shortcodes =
+Live Messages is a powerful WordPress plugin that enables real-time message broadcasting with seamless Slack integration. Perfect for announcements, updates, and important notifications.
 
-1. Full Message Board:
-`[live_messages]`
-Displays complete message board with all features including admin posting form and pagination.
+= Key Features =
 
-2. Compact Display:
-`[live_messages_latest]`
-Shows latest messages in a compact format. Accepts the following parameters:
+* Live Message Broadcasting: Post updates that appear instantly on your site
+* Slack Integration: Automatic notifications to your Slack channel with custom branding
+* REST API Support: Programmatic access for external systems
+* Message Types: Support for different message types (info, success, warning, important)
+* Secure API Access: API key authentication for secure external access
+* Auto-refresh: Real-time updates in the admin dashboard
+* Professional Styling: Clean, responsive design that works on all devices
+* IP Tracking: Track message sources for enhanced security
 
-* type - Filter by message type (important/warning/success/info)
-* count - Number of messages to display (default: 1)
-* words - Word limit per message (default: 30)
-* show_date - Display timestamp (yes/no, default: yes)
-* show_type - Display message type (yes/no, default: yes)
+= Usage =
 
-= Shortcode Examples =
+**Shortcodes**
 
-1. Basic implementation:
-`[live_messages_latest]`
-Shows single latest message with default settings
+Display the full messages interface:
+    [live_messages]
 
-2. Show multiple important messages:
-`[live_messages_latest type="important" count="3"]`
-Displays 3 latest important messages
+Show latest messages with type filter:
+    [live_messages_latest count="5" type="important"]
 
-3. Custom word limit:
-`[live_messages_latest type="warning" count="2" words="100"]`
-Shows 2 warning messages with 100-word limit
+**REST API**
 
-4. Hide date and type:
-`[live_messages_latest show_date="no" show_type="no"]`
-Displays latest message without date and type indicators
+Endpoint: `/wp-json/live-messages/v1/messages`
+
+= Message Types =
+
+* info: General information (Regular updates)
+* success: Success messages (Positive notifications)
+* warning: Warning messages (Important alerts)
+* important: Critical messages (Urgent announcements)
 
 == Installation ==
+
 1. Upload the plugin files to `/wp-content/plugins/live-messages`
-2. Activate the plugin through the 'Plugins' screen in WordPress
-3. Use the shortcode [live_messages] to display the messages
-4. Configure settings under Settings → Live Messages
+2. Activate the plugin through the 'Plugins' menu in WordPress
+3. Go to Settings > Live Messages to configure:
+   * Main title and subtitle
+   * Slack webhook URL
+   * Generate API key for REST access
+
+== Frequently Asked Questions ==
+
+= How do I get a Slack webhook URL? =
+
+You can create a Slack webhook URL by going to your Slack workspace's App Directory, creating a new app, and enabling Incoming Webhooks.
+
+= Is the API secure? =
+
+Yes, the API uses key-based authentication and includes IP tracking for enhanced security.
+
+= Can I customize the message types? =
+
+Currently, the plugin supports four predefined message types: info, success, warning, and important.
+
+== Screenshots ==
+
+1. Admin interface
+2. Message creation form
+3. API logs view
+4. Slack notification example
 
 == Changelog ==
+
+= 1.2.0 =
+* Added Slack integration with improved formatting
+* Enhanced API security with key authentication
+* Added auto-refresh functionality
+* Improved admin interface
+* Added IP tracking for API requests
+* Added Tantrakul branding in Slack messages
+
+= 1.1.0 =
+* Added REST API support
+* Added message types
+* Improved database structure
+
 = 1.0.0 =
+* Initial release
+* Basic messaging functionality
+
+== Upgrade Notice ==
+
+= 1.2.0 =
+This version adds Slack integration, enhanced security features, and real-time updates. Please update your Slack webhook URL in the settings after upgrading.
+
+== Privacy Policy ==
+
+This plugin tracks IP addresses for API requests to enhance security. No personal data is shared with external services except when configured to send notifications to Slack.
+
+== Additional Information ==
+
+For support or feature requests, please visit [GitHub Issues](https://github.com/rbenjwal/live-messages/issues).
+
+This plugin is developed and maintained by [Rajesh Benjwal](https://github.com/rbenjwal).
 * First stable release
 * Improved admin interface
 * Consolidated settings menu
