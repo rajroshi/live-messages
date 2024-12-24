@@ -69,6 +69,7 @@ function live_messages_activate() {
         title varchar(255) NOT NULL,
         content text NOT NULL,
         author_id bigint(20) NOT NULL,
+        author_name varchar(100) DEFAULT NULL,
         type varchar(20) NOT NULL DEFAULT 'info',
         created_at datetime DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY  (id)
@@ -469,16 +470,25 @@ function live_messages_add_settings() {
         'live_messages_settings_page'
     );
 
+    // Register all settings
     register_setting('live-messages', 'live_messages_slack_webhook');
     register_setting('live-messages', 'live_messages_main_title');
     register_setting('live-messages', 'live_messages_subtitle');
+    register_setting('live-messages', 'live_messages_api_key');
 }
 add_action('admin_menu', 'live_messages_add_settings');
 
 function live_messages_settings_page() {
+    // Handle API key generation
+    if (isset($_POST['generate_api_key'])) {
+        $api_key = wp_generate_password(32, false);
+        update_option('live_messages_api_key', $api_key);
+        echo '<div class="notice notice-success"><p>New API key generated successfully!</p></div>';
+    }
     ?>
     <div class="wrap">
         <h2>Live Messages Settings</h2>
+        
         <form method="post" action="options.php">
             <?php settings_fields('live-messages'); ?>
             <table class="form-table">
@@ -509,10 +519,58 @@ function live_messages_settings_page() {
                                class="regular-text">
                     </td>
                 </tr>
+                <tr>
+                    <th>API Key</th>
+                    <td>
+                        <div class="api-key-container">
+                            <p class="description">This API key is required for making POST requests to the REST API.</p>
+                            <?php 
+                            $current_api_key = get_option('live_messages_api_key');
+                            ?>
+                            <input type="text" 
+                                   name="live_messages_api_key"
+                                   class="regular-text" 
+                                   value="<?php echo esc_attr($current_api_key); ?>" 
+                                   readonly>
+                            <div class="api-key-actions">
+                                <form method="post" class="generate-key-form">
+                                    <input type="submit" 
+                                           name="generate_api_key" 
+                                           class="button button-secondary" 
+                                           value="Generate New API Key">
+                                </form>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
             </table>
-            <?php submit_button(); ?>
+            <?php submit_button('Save Settings'); ?>
         </form>
     </div>
+
+    <style>
+        .api-key-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .api-key-container .description {
+            margin: 0 0 5px 0;
+            color: #646970;
+        }
+        .api-key-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .generate-key-form {
+            margin: 0;
+            padding: 0;
+        }
+        .form-table input[readonly] {
+            background: #f0f0f1;
+        }
+    </style>
     <?php
 }
 
@@ -766,4 +824,186 @@ function live_messages_admin_page() {
         });
     </script>
     <?php
+}
+
+// Add this function to log API requests for debugging
+function log_to_file($message) {
+    error_log(print_r($message, true) . "\n", 3, WP_CONTENT_DIR . '/debug.log');
+}
+
+// Update the API key verification function with logging
+function verify_api_key() {
+    $api_key = get_option('live_messages_api_key');
+    
+    // Get all headers
+    $headers = getallheaders();
+    $provided_key = isset($headers['X-Api-Key']) ? $headers['X-Api-Key'] : '';
+    
+    // Log the verification attempt
+    log_to_file([
+        'stored_key' => $api_key,
+        'provided_key' => $provided_key,
+        'headers' => $headers
+    ]);
+    
+    // If no API key is set, deny access
+    if (empty($api_key)) {
+        return new WP_Error('no_api_key', 'No API key is configured', ['status' => 401]);
+    }
+
+    // If no key provided in header
+    if (empty($provided_key)) {
+        return new WP_Error('no_api_key_provided', 'No API key provided in header', ['status' => 401]);
+    }
+
+    // Verify the API key
+    $is_valid = ($api_key === $provided_key);
+    
+    log_to_file([
+        'is_valid' => $is_valid,
+        'comparison' => [
+            'stored' => $api_key,
+            'provided' => $provided_key
+        ]
+    ]);
+
+    return $is_valid;
+}
+
+// Update the REST API registration
+function live_messages_register_rest_routes() {
+    register_rest_route('live-messages/v1', '/messages', array(
+        array(
+            'methods' => WP_REST_Server::READABLE,
+            'callback' => 'live_messages_get_messages_api',
+            'permission_callback' => '__return_true', // Public read access
+            'args' => array(
+                'page' => array(
+                    'default' => 1,
+                    'sanitize_callback' => 'absint',
+                ),
+                'per_page' => array(
+                    'default' => 10,
+                    'sanitize_callback' => 'absint',
+                ),
+                'type' => array(
+                    'default' => '',
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+            ),
+        ),
+        array(
+            'methods' => WP_REST_Server::CREATABLE,
+            'callback' => 'live_messages_create_message_api',
+            'permission_callback' => 'verify_api_key',
+            'args' => array(
+                'title' => array(
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                ),
+                'content' => array(
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_textarea_field',
+                ),
+                'type' => array(
+                    'required' => true,
+                    'sanitize_callback' => 'sanitize_text_field',
+                    'enum' => array('info', 'success', 'warning', 'important'),
+                ),
+                'author_id' => array(
+                    'required' => false,
+                    'default' => 1,
+                    'sanitize_callback' => 'absint',
+                ),
+            ),
+        ),
+    ));
+}
+add_action('rest_api_init', 'live_messages_register_rest_routes');
+
+// GET messages endpoint callback
+function live_messages_get_messages_api($request) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'live_messages';
+    
+    // Get parameters
+    $page = $request->get_param('page');
+    $per_page = $request->get_param('per_page');
+    $type = $request->get_param('type');
+    $offset = ($page - 1) * $per_page;
+    
+    // Build query
+    $where = '';
+    $where_params = array();
+    if (!empty($type)) {
+        $where = 'WHERE m.type = %s';
+        $where_params[] = $type;
+    }
+    
+    // Get total count
+    $total_query = "SELECT COUNT(*) FROM $table_name m $where";
+    $total_items = $wpdb->get_var($wpdb->prepare($total_query, $where_params));
+    
+    // Get messages
+    $query = "SELECT m.*, 
+        IFNULL(u.display_name, u.user_nicename) as author_name
+        FROM $table_name m 
+        LEFT JOIN {$wpdb->users} u ON m.author_id = u.ID 
+        $where
+        ORDER BY m.created_at DESC 
+        LIMIT %d OFFSET %d";
+    
+    $params = array_merge($where_params, array($per_page, $offset));
+    $messages = $wpdb->get_results($wpdb->prepare($query, $params));
+    
+    // Format the response
+    foreach ($messages as $message) {
+        $message->formatted_date = mysql2date('c', $message->created_at);
+    }
+    
+    $response = array(
+        'messages' => $messages,
+        'total' => (int) $total_items,
+        'page' => (int) $page,
+        'per_page' => (int) $per_page,
+        'total_pages' => ceil($total_items / $per_page)
+    );
+    
+    return new WP_REST_Response($response, 200);
+}
+
+// POST message endpoint callback
+function live_messages_create_message_api($request) {
+    global $wpdb;
+    $table_name = $wpdb->prefix . 'live_messages';
+    
+    // Prepare data for insertion
+    $data = array(
+        'title' => $request->get_param('title'),
+        'content' => $request->get_param('content'),
+        'type' => $request->get_param('type'),
+        'author_id' => $request->get_param('author_id'),
+        'created_at' => current_time('mysql')
+    );
+    
+    $result = $wpdb->insert(
+        $table_name,
+        $data,
+        array('%s', '%s', '%s', '%d', '%s')
+    );
+    
+    if ($result === false) {
+        error_log('Database error: ' . $wpdb->last_error);
+        return new WP_Error(
+            'insert_failed',
+            'Failed to create message: ' . $wpdb->last_error,
+            array('status' => 500)
+        );
+    }
+    
+    return new WP_REST_Response(array(
+        'id' => $wpdb->insert_id,
+        'message' => 'Message created successfully',
+        'data' => $data
+    ), 201);
 }
