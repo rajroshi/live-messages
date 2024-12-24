@@ -77,4 +77,4 @@ Request Body:
 - Shortcode support
 
 ## License
-GPL v2 or later
+GPL v3 or later
