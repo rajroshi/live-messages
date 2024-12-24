@@ -1,149 +1,74 @@
 # Live Messages WordPress Plugin
 
-## Description
-Live Messages is a WordPress plugin that enables real-time message updates and announcements on your website. Perfect for displaying important notifications, updates, or any time-sensitive information to your visitors.
+A WordPress plugin to display live messages and announcements with REST API support.
 
 ## Features
-- Real-time message updates
-- Multiple message types (Info, Success, Warning, Important)
-- Responsive design for all devices
-- Bulk message management
+- Display live messages and announcements
+- Support for different message types (info, success, warning, important)
+- REST API support for creating messages
 - Slack integration for notifications
-- Shortcode support
-- Latest message widget
-- Custom styling options
+- API key authentication for secure posting
+- Shortcode support for displaying messages
 
 ## Installation
-1. Download the plugin from GitHub
-2. Upload to your WordPress site's `/wp-content/plugins/` directory
-3. Activate the plugin through the 'Plugins' menu in WordPress
-4. Configure settings in the WordPress admin panel under 'Live Messages'
+1. Download the plugin
+2. Upload to your WordPress plugins directory
+3. Activate the plugin through WordPress admin
+4. Configure settings at Settings > Live Messages
+5. Generate API key from settings page for REST API usage
 
 ## Usage
 
-### Basic Shortcode
-To display all messages in a responsive layout:
+### Shortcodes
+Display all messages:
 [live_messages]
 
-This will show:
-- Message submission form (for administrators)
-- All messages in chronological order
-- Message type indicators
-- Author and date information
+Display latest/important message:
+[live_messages_latest type="important" count="1" words="30" show_date="yes" show_type="yes"]
 
-### Latest Message Shortcode Examples
+### REST API
 
-1. Display single latest message:
-[live_messages_latest]
+#### Authentication
+- Generate API key from plugin settings page
+- Use API key in X-Api-Key header for POST requests
+- GET requests are public and don't require authentication
 
-2. Show 3 most recent messages:
-[live_messages_latest count="3"]
+#### Endpoints
 
-3. Display only important messages:
-[live_messages_latest type="important"]
+GET Messages:
+GET /wp-json/live-messages/v1/messages
 
-4. Show latest success message with date:
-[live_messages_latest type="success" show_date="yes"]
+POST New Message:
+POST /wp-json/live-messages/v1/messages
+Headers:
+- Content-Type: application/json
+- X-Api-Key: YOUR_API_KEY
 
-5. Display warning message without type indicator:
-[live_messages_latest type="warning" show_type="no"]
+Request Body:
+{
+  "title": "Message Title",
+  "content": "Message Content",
+  "type": "info",
+  "author_id": 1
+}
 
-6. Limit message length to 20 words:
-[live_messages_latest words="20"]
+### Message Types
+- info (default) - For general announcements
+- success - For positive updates
+- warning - For cautionary notices
+- important - For critical updates
 
-7. Complete example with all parameters:
-[live_messages_latest count="2" type="info" words="25" show_date="yes" show_type="yes"]
-
-### Message Types and Their Uses
-
-1. Info (Blue)
-   - General announcements
-   - Regular updates
-   - News items
-   Example: "Our office will be open during regular hours"
-
-2. Success (Green)
-   - Positive announcements
-   - Completed actions
-   - Achievement notifications
-   Example: "Successfully launched new website feature"
-
-3. Warning (Yellow)
-   - Cautionary notices
-   - Important reminders
-   - Temporary issues
-   Example: "Site maintenance scheduled for tomorrow"
-
-4. Important (Red)
-   - Critical updates
-   - Emergency notices
-   - Urgent announcements
-   Example: "Emergency server maintenance in progress"
-
-### Admin Panel Features
-
-1. Message Management
-   - View all messages in a table format
-   - Sort by date, type, or author
-   - Bulk actions for multiple messages
-   - Quick delete functionality
-
-2. Bulk Actions
-   - Select multiple messages using checkboxes
-   - Apply actions to selected messages
-   - Available actions: Delete
-
-3. Message Creation
-   - Title: Brief heading for the message
-   - Content: Main message body
-   - Type: Select message type
-   - Auto-save feature
-   - Preview before posting
-
-### Slack Integration Setup
-
-1. Create Slack Webhook:
-   - Go to Slack Apps
-   - Create New App
-   - Enable Webhooks
-   - Copy Webhook URL
-
-2. Plugin Configuration:
-   - Navigate to Live Messages settings
-   - Paste Webhook URL
-   - Test connection
-   - Save settings
-
-3. Notification Features:
-   - Real-time message posting to Slack
-   - Customizable message format
-   - Type-based notifications
-   - Author attribution
-
-### Customization
-
-1. CSS Classes for Styling:
-   - .live-messages-container (Main container)
-   - .message-type (Type indicators)
-   - .message-title (Message titles)
-   - .message-content (Message body)
-   - .message-meta (Date and author info)
-
-2. Message Display Options:
-   - Adjustable message count
-   - Customizable word limit
-   - Toggle date display
-   - Toggle type indicators
+## Requirements
+- WordPress 5.0 or higher
+- PHP 7.4 or higher
 
 ## Changelog
 
-### 1.0.1
-- Enhanced frontend shortcode display with responsive design
-- Fixed mobile layout issues
-- Improved admin panel table layout
-- Added bulk actions functionality
-- Fixed overflow issues
-- Added proper spacing and padding
+### 1.1.0
+- Added REST API support with API key authentication
+- Added author_id support for messages
+- Added API key generation in settings
+- Improved settings page layout
 
 ### 1.0.0
 - Initial release
@@ -151,10 +76,5 @@ This will show:
 - Slack integration
 - Shortcode support
 
-## Support
-- GitHub Issues: https://github.com/rajroshi/live-messages/issues
-- Author: Rajesh Benjwal
-- Website: https://tantrakul.org
-
 ## License
-GPL v3 - See LICENSE file for details
+GPL v2 or later
